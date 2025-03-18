@@ -163,3 +163,46 @@ export function getTrailingMessageId({
 
   return trailingMessage.id;
 }
+
+export function sanitizeUIMessages(messages: Array<UIMessage>): Array<UIMessage> {
+  // Filter out any incomplete or empty messages
+  return messages.filter((message) => {
+    // Filter out messages with empty content
+    if (typeof message.content === 'string') {
+      return message.content.trim().length > 0;
+    }
+    
+    // For array content, filter out empty arrays or arrays with empty content
+    if (Array.isArray(message.content)) {
+      return message.content.length > 0 && message.content.some(part => {
+        if (part.type === 'text') {
+          return part.text.trim().length > 0;
+        }
+        return true; // Keep other types of content parts
+      });
+    }
+    
+    return true; // Keep other types of messages
+  });
+}
+
+export function convertToUIMessages(dbMessages: Array<DBMessage>): Array<UIMessage> {
+  return dbMessages.map(dbMessage => {
+    const { id, role, parts, attachments, createdAt } = dbMessage;
+    
+    // Convert the database message format to the UI message format
+    const uiMessage: UIMessage = {
+      id,
+      role: role as UIMessage['role'],
+      createdAt: createdAt,
+      content: parts as any, // The parts from DB should match the expected content format
+    };
+    
+    // Add attachments if they exist
+    if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+      uiMessage.attachments = attachments as any;
+    }
+    
+    return uiMessage;
+  });
+}
